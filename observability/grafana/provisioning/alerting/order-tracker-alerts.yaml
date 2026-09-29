@@ -1,0 +1,83 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: order-tracker
+    folder: Order Tracker
+    interval: 10s
+    rules:
+      - uid: order-tracker-5xx
+        title: Order Tracker 5xx responses
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              instant: true
+              # 5xx responses per endpoint over the last 5 minutes. The second branch
+              # catches a brand-new error series (first 5xx since start), which
+              # increase() alone reports as 0 because it has no earlier sample.
+              expr: >-
+                (sum by (http_route) (increase(http_server_requests_total{service_name="order-tracker", http_response_status_code=~"5.."}[5m])) > 0)
+                or
+                sum by (http_route) (
+                  http_server_requests_total{service_name="order-tracker", http_response_status_code=~"5.."}
+                  unless http_server_requests_total{service_name="order-tracker", http_response_status_code=~"5.."} offset 5m
+                )
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+        # No 5xx series at all means the app is healthy, not that data is missing.
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        labels:
+          service: order-tracker
+          severity: page
+        annotations:
+          summary: "5xx responses on {{ $labels.http_route }}"
+          description: >-
+            {{ $labels.http_route }} returned {{ humanize $values.B.Value }} 5xx
+            response(s) in the last 5 minutes (window: 5m).
+          endpoint: "{{ $labels.http_route }}"
+          window: 5m
+          dashboard_url: http://localhost:3000/d/order-tracker/order-tracker
+          __dashboardUid__: order-tracker
+          __panelId__: "6"
+
+contactPoints:
+  - orgId: 1
+    name: incident-responder
+    receivers:
+      - uid: incident-responder-webhook
+        type: webhook
+        settings:
+          url: http://host.docker.internal:8001/alerts
+          httpMethod: POST
+        disableResolveMessage: false
+
+policies:
+  - orgId: 1
+    receiver: incident-responder
+    group_by: [alertname, http_route]
+    group_wait: 5s
+    group_interval: 1m
+    repeat_interval: 4h
