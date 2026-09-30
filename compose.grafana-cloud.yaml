@@ -1,0 +1,14 @@
+# Send telemetry to Grafana Cloud instead of the local Prometheus/Loki/Tempo/Grafana:
+#
+#   docker compose -f compose.yaml -f compose.grafana-cloud.yaml up --build -d --wait app otel-collector
+#
+# Needs GRAFANA_OTLP_ENDPOINT, GRAFANA_OTLP_INSTANCE_ID and GRAFANA_OTLP_TOKEN in the environment.
+services:
+  otel-collector:
+    volumes:
+      - ./observability/otel-collector.grafana-cloud.yaml:/etc/otelcol/config.yaml:ro
+    environment:
+      GRAFANA_OTLP_ENDPOINT: ${GRAFANA_OTLP_ENDPOINT:?set GRAFANA_OTLP_ENDPOINT}
+      GRAFANA_OTLP_INSTANCE_ID: ${GRAFANA_OTLP_INSTANCE_ID:?set GRAFANA_OTLP_INSTANCE_ID}
+      GRAFANA_OTLP_TOKEN: ${GRAFANA_OTLP_TOKEN:?set GRAFANA_OTLP_TOKEN}
+    depends_on: !reset []

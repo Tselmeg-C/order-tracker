@@ -34,3 +34,21 @@ Run tests with `uv run --frozen pytest -q`. Stop the app with `docker compose do
 | PATCH | `/api/orders/{id}` | Change an order status |
 
 The app uses SQLite to keep setup small. Run one app container at a time. The course exercise is about detecting and handling an incident, not scaling the database.
+
+## Grafana Cloud (optional)
+
+To send telemetry to a Grafana Cloud stack instead of the local Grafana, set the OTLP values from the stack's OpenTelemetry page and start only the app and the Collector:
+
+```bash
+export GRAFANA_OTLP_ENDPOINT=https://otlp-gateway-prod-<region>.grafana.net/otlp
+export GRAFANA_OTLP_INSTANCE_ID=<instance id>
+export GRAFANA_OTLP_TOKEN=<token>
+docker compose -f compose.yaml -f compose.grafana-cloud.yaml up --build -d --wait app otel-collector
+```
+
+Upload the dashboard and the 5xx alert with a service account token (Editor role):
+
+```bash
+GRAFANA_URL=https://<stack>.grafana.net GRAFANA_SA_TOKEN=<token> \
+  uv run --with pyyaml python observability/grafana_cloud_setup.py
+```
