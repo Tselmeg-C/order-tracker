@@ -1,0 +1,78 @@
+name: Grafana Cloud check
+
+# Uploads the dashboard and 5xx alert to Grafana Cloud, runs Order Tracker with
+# telemetry going to the stack, sends test traffic, and checks that metrics,
+# logs, traces, and the alert state show up. Needs the GRAFANA_* repo secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      trigger_errors:
+        description: "Also request express-1002 to cause 500s and check the alert fires"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+      GRAFANA_SA_TOKEN: ${{ secrets.GRAFANA_SA_TOKEN }}
+      GRAFANA_OTLP_ENDPOINT: ${{ secrets.GRAFANA_OTLP_ENDPOINT }}
+      GRAFANA_OTLP_INSTANCE_ID: ${{ secrets.GRAFANA_OTLP_INSTANCE_ID }}
+      GRAFANA_OTLP_TOKEN: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+      COMPOSE: docker compose -f compose.yaml -f compose.grafana-cloud.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Check secrets are set
+        run: |
+          for name in GRAFANA_URL GRAFANA_SA_TOKEN GRAFANA_OTLP_ENDPOINT GRAFANA_OTLP_INSTANCE_ID GRAFANA_OTLP_TOKEN; do
+            if [ -z "${!name}" ]; then echo "Missing secret $name"; exit 1; fi
+          done
+
+      - name: Upload dashboard and alert
+        run: uv run --with pyyaml python observability/grafana_cloud_setup.py
+
+      - name: Start app and collector
+        run: |
+          $COMPOSE up --build -d --wait app otel-collector
+          curl -fsS http://localhost:8000/healthz
+
+      - name: Send normal traffic
+        run: |
+          for i in 1 2 3; do
+            curl -s -o /dev/null -w "standard-1001 %{http_code}\n" http://localhost:8000/api/orders/standard-1001
+            curl -s -o /dev/null -w "standard-1002 %{http_code}\n" http://localhost:8000/api/orders/standard-1002
+            sleep 5
+          done
+
+      - name: Check metrics, logs, traces, alert Normal
+        working-directory: observability
+        run: uv run --with pyyaml python grafana_cloud_check.py before-errors
+
+      - name: Send failing requests
+        if: inputs.trigger_errors
+        run: |
+          for i in 1 2 3 4 5; do
+            curl -s -o /dev/null -w "express-1002 %{http_code}\n" http://localhost:8000/api/orders/express-1002
+            sleep 5
+          done
+
+      - name: Check 500s and alert Firing
+        if: inputs.trigger_errors
+        working-directory: observability
+        run: uv run --with pyyaml python grafana_cloud_check.py after-errors
+
+      - name: App and collector logs
+        if: always()
+        run: $COMPOSE logs --no-color --tail 80 app otel-collector
+
+      - name: Stop
+        if: always()
+        run: $COMPOSE down -v
