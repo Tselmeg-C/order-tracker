@@ -59,10 +59,15 @@ def find_datasources():
     if status != 200:
         sys.exit(f"Could not list data sources ({status}): {sources}")
     found = {}
-    for kind in ("prometheus", "loki", "tempo"):
+    # the stack's own data sources (not ML metrics, usage, or alert state history)
+    suffixes = {"prometheus": "prom", "loki": "logs", "tempo": "traces"}
+    for kind, suffix in suffixes.items():
         matches = [s for s in sources if s["type"] == kind]
-        # prefer the stack's built-in grafanacloud-* data sources
-        matches.sort(key=lambda s: (not s["name"].startswith("grafanacloud-"), s["name"]))
+        matches.sort(key=lambda s: (
+            s["uid"] != f"grafanacloud-{suffix}",
+            not (s["name"].startswith("grafanacloud-") and s["name"].endswith(f"-{suffix}")),
+            s["name"],
+        ))
         if not matches:
             sys.exit(f"No {kind} data source found in {GRAFANA_URL}")
         found[kind] = matches[0]["uid"]
@@ -95,8 +100,12 @@ def fix_prometheus(node):
 
 
 def ensure_folder():
-    status, body = api("POST", "/api/folders", {"uid": FOLDER_UID, "title": "Order Tracker"}, ok=(200, 409, 412))
-    if status not in (200, 409, 412) and "already exists" not in str(body):
+    status, body = api("GET", f"/api/folders/{FOLDER_UID}")
+    if status == 200:
+        return
+    status, body = api("POST", "/api/folders", {"uid": FOLDER_UID, "title": "Order Tracker"})
+    print(f"folder: {status}")
+    if status != 200:
         sys.exit(f"Could not create folder ({status}): {body}")
 
 
@@ -132,9 +141,9 @@ def upload_alert(uids, dashboard_url):
         print(f"contact point: {status}")
 
     for rule in rules:
-        status, body = api("PUT", f"/api/v1/provisioning/alert-rules/{rule['uid']}", rule)
-        if status == 404:
-            status, body = api("POST", "/api/v1/provisioning/alert-rules", rule)
+        status, body = api("POST", "/api/v1/provisioning/alert-rules", rule)
+        if status == 409 or "already exists" in str(body):
+            status, body = api("PUT", f"/api/v1/provisioning/alert-rules/{rule['uid']}", rule)
         if status not in (200, 201):
             sys.exit(f"Alert rule upload failed ({status}): {body}")
         print(f"alert rule: {rule['title']} ({status})")
