@@ -7,7 +7,7 @@ investigate and fix it.
 
 Run it on the host (the agent needs the repo, uv, and docker):
 
-    uv run --project incident-response uvicorn responder:app --app-dir incident-response --port 8001
+    uv run --frozen uvicorn responder:app --app-dir incident-response --host 0.0.0.0 --port 8001
 """
 
 import json
@@ -252,12 +252,14 @@ with a line starting with "RESOLVED:" and the root cause in one sentence."""
 def run_agent(alert, incident_dir, is_test):
     prompt = agent_prompt(alert, incident_dir, is_test)
     (incident_dir / "agent-prompt.md").write_text(prompt + "\n")
-    command = shlex.split(AGENT_COMMAND) + [prompt]
+    # The prompt goes through stdin: variadic flags such as --allowedTools would
+    # otherwise swallow a trailing prompt argument.
+    command = shlex.split(AGENT_COMMAND)
     with open(incident_dir / "agent-output.md", "w") as output:
         try:
             result = subprocess.run(
                 command, cwd=REPO_DIR, stdout=output, stderr=subprocess.STDOUT,
-                stdin=subprocess.DEVNULL, timeout=AGENT_TIMEOUT_SECONDS,
+                input=prompt, text=True, timeout=AGENT_TIMEOUT_SECONDS,
             )
         except subprocess.TimeoutExpired:
             output.write("\nESCALATE: agent timed out\n")

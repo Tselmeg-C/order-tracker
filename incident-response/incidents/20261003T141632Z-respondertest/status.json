@@ -1,0 +1,6 @@
+{
+  "state": "agent failed (1)",
+  "updated_at": "2026-10-03T14:16:33.706589+00:00",
+  "alertname": "ResponderTest",
+  "endpoint": null
+}
