@@ -1,0 +1,7 @@
+{
+  "endpoint": null,
+  "window_seconds": 900,
+  "metrics": [],
+  "error_logs": [],
+  "traces": {}
+}

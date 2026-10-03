@@ -1,0 +1,64 @@
+{
+  "alert": {
+    "status": "firing",
+    "labels": {
+      "alertname": "DatasourceError",
+      "datasource_uid": "prometheus",
+      "grafana_folder": "Order Tracker",
+      "ref_id": "A",
+      "rulename": "Order Tracker 5xx responses",
+      "service": "order-tracker",
+      "severity": "page"
+    },
+    "annotations": {
+      "Error": "[sse.dataQueryError] failed to execute query [A]: Post \"http://prometheus:9090/api/v1/query\": dial tcp 10.215.24.3:9090: i/o timeout",
+      "dashboard_url": "http://localhost:3000/d/order-tracker/order-tracker",
+      "description": "{{ $labels.http_route }} returned {{ humanize $values.B.Value }} 5xx response(s) in the last 5 minutes (window: 5m).",
+      "endpoint": "[no value]",
+      "summary": "5xx responses on [no value]",
+      "window": "5m"
+    },
+    "startsAt": "2026-10-03T14:16:00Z",
+    "endsAt": "0001-01-01T00:00:00Z",
+    "generatorURL": "http://localhost:3000/alerting/grafana/order-tracker-5xx/view?orgId=1",
+    "fingerprint": "e4b1313beffc825b",
+    "silenceURL": "http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=__alert_rule_uid__%3Dorder-tracker-5xx&matcher=datasource_uid%3Dprometheus&matcher=ref_id%3DA&matcher=rulename%3DOrder+Tracker+5xx+responses&matcher=service%3Dorder-tracker&matcher=severity%3Dpage&orgId=1",
+    "dashboardURL": "http://localhost:3000/d/order-tracker?from=1791033360000&orgId=1&to=1791037070199",
+    "panelURL": "http://localhost:3000/d/order-tracker?from=1791033360000&orgId=1&to=1791037070199&viewPanel=6",
+    "values": null,
+    "valueString": "",
+    "orgId": 1
+  },
+  "webhook": {
+    "receiver": "incident-responder",
+    "status": "firing",
+    "groupLabels": {
+      "alertname": "DatasourceError"
+    },
+    "commonLabels": {
+      "alertname": "DatasourceError",
+      "datasource_uid": "prometheus",
+      "grafana_folder": "Order Tracker",
+      "ref_id": "A",
+      "rulename": "Order Tracker 5xx responses",
+      "service": "order-tracker",
+      "severity": "page"
+    },
+    "commonAnnotations": {
+      "Error": "[sse.dataQueryError] failed to execute query [A]: Post \"http://prometheus:9090/api/v1/query\": dial tcp 10.215.24.3:9090: i/o timeout",
+      "dashboard_url": "http://localhost:3000/d/order-tracker/order-tracker",
+      "description": "{{ $labels.http_route }} returned {{ humanize $values.B.Value }} 5xx response(s) in the last 5 minutes (window: 5m).",
+      "endpoint": "[no value]",
+      "summary": "5xx responses on [no value]",
+      "window": "5m"
+    },
+    "externalURL": "http://localhost:3000/",
+    "version": "1",
+    "groupKey": "{}:{alertname=\"DatasourceError\"}",
+    "truncatedAlerts": 0,
+    "orgId": 1,
+    "title": "[FIRING:1] DatasourceError (prometheus Order Tracker A Order Tracker 5xx responses order-tracker page)",
+    "state": "alerting",
+    "message": "**Firing**\n\nValue: [no value]\nLabels:\n - alertname = DatasourceError\n - datasource_uid = prometheus\n - grafana_folder = Order Tracker\n - ref_id = A\n - rulename = Order Tracker 5xx responses\n - service = order-tracker\n - severity = page\nAnnotations:\n - Error = [sse.dataQueryError] failed to execute query [A]: Post \"http://prometheus:9090/api/v1/query\": dial tcp 10.215.24.3:9090: i/o timeout\n - dashboard_url = http://localhost:3000/d/order-tracker/order-tracker\n - description = {{ $labels.http_route }} returned {{ humanize $values.B.Value }} 5xx response(s) in the last 5 minutes (window: 5m).\n - endpoint = [no value]\n - summary = 5xx responses on [no value]\n - window = 5m\nSource: http://localhost:3000/alerting/grafana/order-tracker-5xx/view?orgId=1\nSilence: http://localhost:3000/alerting/silence/new?alertmanager=grafana&matcher=__alert_rule_uid__%3Dorder-tracker-5xx&matcher=datasource_uid%3Dprometheus&matcher=ref_id%3DA&matcher=rulename%3DOrder+Tracker+5xx+responses&matcher=service%3Dorder-tracker&matcher=severity%3Dpage&orgId=1\nDashboard: http://localhost:3000/d/order-tracker?from=1791033360000&orgId=1&to=1791037070199\nPanel: http://localhost:3000/d/order-tracker?from=1791033360000&orgId=1&to=1791037070199&viewPanel=6\n"
+  }
+}
